@@ -1,0 +1,24 @@
+# Секреты и локальное окружение
+.env
+.venv/
+venv/
+env/
+
+# Кэш и артефакты Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE и ОС
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
