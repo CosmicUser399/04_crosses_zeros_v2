@@ -16,6 +16,9 @@ from constants import (
     CELL_FONT,
     HINT_BUTTON_TEXT,
     HINT_STATUS_TEXT,
+    DEFAULT_DIFFICULTY,
+    DIFFICULTY_NAMES,
+    DIFFICULTY_ORDER,
     PLAYER_O,
     PLAYER_O_NAME,
     PLAYER_X,
@@ -33,6 +36,9 @@ _COLOR_HINT = "#90EE90"
 _COLOR_X = "#2196F3"
 _COLOR_O = "#F44336"
 
+# Обратное отображение «русское название → код уровня»
+_NAME_TO_DIFFICULTY = {v: k for k, v in DIFFICULTY_NAMES.items()}
+
 
 class TicTacToeApp:
     """Tkinter-интерфейс игры. Не определяет победителя сам —
@@ -45,13 +51,17 @@ class TicTacToeApp:
         self._game = Game()
         self._ai = AI()
         self._hint_engine = HintEngine()
+        self._active_difficulty: str = DEFAULT_DIFFICULTY
+        self._ai = AI(difficulty=self._active_difficulty)
         self.ai_thinking: bool = False
         self._hint_cell: tuple[int, int] | None = None
         self._buttons: list[list[tk.Button]] = []
         self._status_var = tk.StringVar()
         self._hint_btn: ttk.Button | None = None
+        self._active_diff_var = tk.StringVar()
         self._build_ui()
         self._update_status()
+        self._update_active_difficulty_label()
 
     def _build_ui(self) -> None:
         """Построить виджеты окна."""
@@ -63,6 +73,29 @@ class TicTacToeApp:
             anchor="center",
         )
         status_label.pack(fill=tk.X, padx=20, pady=(20, 10))
+
+        # Строка выбора сложности
+        diff_frame = ttk.Frame(self._root)
+        diff_frame.pack(padx=20, pady=(0, 6))
+
+        ttk.Label(
+            diff_frame,
+            text="Уровень сложности:",
+            font=("Arial", 11),
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
+        difficulty_names = [
+            DIFFICULTY_NAMES[d] for d in DIFFICULTY_ORDER
+        ]
+        self._diff_combo = ttk.Combobox(
+            diff_frame,
+            values=difficulty_names,
+            state="readonly",
+            width=10,
+            font=("Arial", 11),
+        )
+        self._diff_combo.set(DIFFICULTY_NAMES[DEFAULT_DIFFICULTY])
+        self._diff_combo.pack(side=tk.LEFT)
 
         # Сетка игровых клеток
         grid_frame = ttk.Frame(self._root)
@@ -103,6 +136,23 @@ class TicTacToeApp:
             command=self.on_hint_clicked,
         )
         self._hint_btn.grid(row=0, column=1, padx=8)
+        # Нижняя панель: кнопка «Новая игра» + label активной сложности
+        bottom_frame = ttk.Frame(self._root)
+        bottom_frame.pack(pady=20)
+
+        new_game_btn = ttk.Button(
+            bottom_frame,
+            text="Новая игра",
+            command=self.on_new_game_clicked,
+        )
+        new_game_btn.pack(side=tk.LEFT, padx=(0, 16))
+
+        ttk.Label(
+            bottom_frame,
+            textvariable=self._active_diff_var,
+            font=("Arial", 11),
+            foreground="#555555",
+        ).pack(side=tk.LEFT)
 
     # ------------------------------------------------------------------
     # Обработчики событий
@@ -158,6 +208,15 @@ class TicTacToeApp:
     def on_new_game_clicked(self) -> None:
         """Сбросить игру и очистить UI."""
         self._clear_hint_highlight()
+        """Применить выбранную сложность, сбросить игру и очистить UI."""
+        selected_name = self._diff_combo.get()
+        difficulty = _NAME_TO_DIFFICULTY.get(
+            selected_name, DEFAULT_DIFFICULTY
+        )
+        self._active_difficulty = difficulty
+        self._ai = AI(difficulty=difficulty)
+        self._update_active_difficulty_label()
+
         self._game.reset()
         self.ai_thinking = False
         for r in range(BOARD_SIZE):
@@ -232,3 +291,8 @@ class TicTacToeApp:
             self._status_var.set("Ход компьютера...")
         else:
             self._status_var.set(f"Ваш ход, {PLAYER_X_NAME}")
+
+    def _update_active_difficulty_label(self) -> None:
+        """Обновить label с текущей активной сложностью."""
+        name = DIFFICULTY_NAMES.get(self._active_difficulty, "")
+        self._active_diff_var.set(f"Сложность: {name}")
