@@ -87,11 +87,9 @@ python -m unittest discover
 ├── tests/
 │   ├── __init__.py
 │   ├── test_game.py   # тесты игровой модели (32 теста)
-│   ├── test_ai.py     # тесты ИИ (10 тестов)
-│   ├── test_search.py # тесты SearchEngine (19 тестов)
-│   └── test_hint.py   # тесты HintEngine (9 тестов)
-│   ├── test_game.py # тесты игровой модели (32 теста)
-│   └── test_ai.py   # тесты ИИ (все три уровня сложности)
+│   ├── test_ai.py     # тесты ИИ, все три уровня сложности (27 тестов)
+│   ├── test_search.py # тесты SearchEngine (15 тестов)
+│   └── test_hint.py   # тесты HintEngine (11 тестов)
 └── README.md
 ```
 
@@ -113,8 +111,10 @@ python -m unittest discover
 Зависимости идут строго в одну сторону:
 
 ```
-ui.py / main.py  →  game.py / ai.py  →  constants.py
+ui.py / main.py  →  game.py / ai.py / hint.py  →  constants.py
+                                hint.py  →  search.py  →  game.py
 ```
 
-`game.py` и `ai.py` не импортируют `tkinter` и не знают о виджетах —
-это делает игровую логику полностью тестируемой в изоляции.
+`game.py`, `ai.py`, `search.py` и `hint.py` не импортируют `tkinter`
+и не знают о виджетах — это делает игровую логику полностью
+тестируемой в изоляции.

@@ -49,7 +49,6 @@ class TicTacToeApp:
         """Инициализировать приложение и построить UI."""
         self._root = root
         self._game = Game()
-        self._ai = AI()
         self._hint_engine = HintEngine()
         self._active_difficulty: str = DEFAULT_DIFFICULTY
         self._ai = AI(difficulty=self._active_difficulty)
@@ -121,7 +120,7 @@ class TicTacToeApp:
 
         # Кнопки «Новая игра» и «Подсказать ход» в одном фрейме
         buttons_frame = ttk.Frame(self._root)
-        buttons_frame.pack(pady=20)
+        buttons_frame.pack(pady=(20, 6))
 
         new_game_btn = ttk.Button(
             buttons_frame,
@@ -136,23 +135,14 @@ class TicTacToeApp:
             command=self.on_hint_clicked,
         )
         self._hint_btn.grid(row=0, column=1, padx=8)
-        # Нижняя панель: кнопка «Новая игра» + label активной сложности
-        bottom_frame = ttk.Frame(self._root)
-        bottom_frame.pack(pady=20)
 
-        new_game_btn = ttk.Button(
-            bottom_frame,
-            text="Новая игра",
-            command=self.on_new_game_clicked,
-        )
-        new_game_btn.pack(side=tk.LEFT, padx=(0, 16))
-
+        # Label с текущей активной сложностью
         ttk.Label(
-            bottom_frame,
+            self._root,
             textvariable=self._active_diff_var,
             font=("Arial", 11),
             foreground="#555555",
-        ).pack(side=tk.LEFT)
+        ).pack(pady=(0, 20))
 
     # ------------------------------------------------------------------
     # Обработчики событий
@@ -206,9 +196,8 @@ class TicTacToeApp:
         self._update_status()
 
     def on_new_game_clicked(self) -> None:
-        """Сбросить игру и очистить UI."""
-        self._clear_hint_highlight()
         """Применить выбранную сложность, сбросить игру и очистить UI."""
+        self._clear_hint_highlight()
         selected_name = self._diff_combo.get()
         difficulty = _NAME_TO_DIFFICULTY.get(
             selected_name, DEFAULT_DIFFICULTY
