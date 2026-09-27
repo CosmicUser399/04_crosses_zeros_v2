@@ -14,6 +14,8 @@ from constants import (
     AI_MOVE_DELAY_MS,
     BOARD_SIZE,
     CELL_FONT,
+    HINT_BUTTON_TEXT,
+    HINT_STATUS_TEXT,
     DEFAULT_DIFFICULTY,
     DIFFICULTY_NAMES,
     DIFFICULTY_ORDER,
@@ -23,12 +25,14 @@ from constants import (
     PLAYER_X_NAME,
 )
 from game import Game
+from hint import HintEngine
 
 
 _logger = logging.getLogger(__name__)
 
 _COLOR_DEFAULT = "SystemButtonFace"
 _COLOR_WIN = "#FFD700"
+_COLOR_HINT = "#90EE90"
 _COLOR_X = "#2196F3"
 _COLOR_O = "#F44336"
 
@@ -45,11 +49,15 @@ class TicTacToeApp:
         """Инициализировать приложение и построить UI."""
         self._root = root
         self._game = Game()
+        self._ai = AI()
+        self._hint_engine = HintEngine()
         self._active_difficulty: str = DEFAULT_DIFFICULTY
         self._ai = AI(difficulty=self._active_difficulty)
         self.ai_thinking: bool = False
+        self._hint_cell: tuple[int, int] | None = None
         self._buttons: list[list[tk.Button]] = []
         self._status_var = tk.StringVar()
+        self._hint_btn: ttk.Button | None = None
         self._active_diff_var = tk.StringVar()
         self._build_ui()
         self._update_status()
@@ -111,6 +119,23 @@ class TicTacToeApp:
                 row_buttons.append(btn)
             self._buttons.append(row_buttons)
 
+        # Кнопки «Новая игра» и «Подсказать ход» в одном фрейме
+        buttons_frame = ttk.Frame(self._root)
+        buttons_frame.pack(pady=20)
+
+        new_game_btn = ttk.Button(
+            buttons_frame,
+            text="Новая игра",
+            command=self.on_new_game_clicked,
+        )
+        new_game_btn.grid(row=0, column=0, padx=8)
+
+        self._hint_btn = ttk.Button(
+            buttons_frame,
+            text=HINT_BUTTON_TEXT,
+            command=self.on_hint_clicked,
+        )
+        self._hint_btn.grid(row=0, column=1, padx=8)
         # Нижняя панель: кнопка «Новая игра» + label активной сложности
         bottom_frame = ttk.Frame(self._root)
         bottom_frame.pack(pady=20)
@@ -147,33 +172,42 @@ class TicTacToeApp:
             _logger.debug("Недопустимый ход (%d, %d)", row, col)
             return
 
+        self._clear_hint_highlight()
         self._refresh_board()
 
         if self._game.is_game_over():
             self._update_status()
             self._highlight_winning_cells()
+            self._set_hint_btn_state(tk.DISABLED)
             return
 
         self.ai_thinking = True
+        self._set_hint_btn_state(tk.DISABLED)
         self._update_status()
         self._root.after(AI_MOVE_DELAY_MS, self._make_ai_move)
 
     def _make_ai_move(self) -> None:
         """Выполнить ход ИИ (вызывается через root.after)."""
+        self._clear_hint_highlight()
         row, col = self._ai.get_move(self._game)
         _logger.info("ИИ выбрал ход (%d, %d)", row, col)
         self._game.make_move(row, col, PLAYER_O)
         self._refresh_board()
 
+        self.ai_thinking = False
+
         if self._game.is_game_over():
             self._update_status()
             self._highlight_winning_cells()
+            self._set_hint_btn_state(tk.DISABLED)
+            return
 
-        self.ai_thinking = False
-        if not self._game.is_game_over():
-            self._update_status()
+        self._set_hint_btn_state(tk.NORMAL)
+        self._update_status()
 
     def on_new_game_clicked(self) -> None:
+        """Сбросить игру и очистить UI."""
+        self._clear_hint_highlight()
         """Применить выбранную сложность, сбросить игру и очистить UI."""
         selected_name = self._diff_combo.get()
         difficulty = _NAME_TO_DIFFICULTY.get(
@@ -192,11 +226,40 @@ class TicTacToeApp:
                     bg=_COLOR_DEFAULT,
                     fg="black",
                 )
+        self._set_hint_btn_state(tk.NORMAL)
         self._update_status()
+
+    def on_hint_clicked(self) -> None:
+        """Подсветить рекомендуемый ход для игрока."""
+        if self.ai_thinking or self._game.is_game_over():
+            return
+
+        self._clear_hint_highlight()
+        move = self._hint_engine.get_best_move(self._game, PLAYER_X)
+        if move is None:
+            return
+
+        row, col = move
+        self._hint_cell = (row, col)
+        self._buttons[row][col].configure(bg=_COLOR_HINT)
+        self._status_var.set(HINT_STATUS_TEXT)
+        _logger.debug("Подсказка: клетка (%d, %d)", row, col)
 
     # ------------------------------------------------------------------
     # Вспомогательные методы UI
     # ------------------------------------------------------------------
+
+    def _clear_hint_highlight(self) -> None:
+        """Сбросить подсветку подсказки, если она была активна."""
+        if self._hint_cell is not None:
+            r, c = self._hint_cell
+            self._buttons[r][c].configure(bg=_COLOR_DEFAULT)
+            self._hint_cell = None
+
+    def _set_hint_btn_state(self, state: str) -> None:
+        """Установить состояние кнопки подсказки."""
+        if self._hint_btn is not None:
+            self._hint_btn.configure(state=state)
 
     def _refresh_board(self) -> None:
         """Обновить текст и цвет всех кнопок по состоянию игры."""

@@ -20,6 +20,9 @@ CELL_FONT = ("Arial", 24, "bold")
 
 AI_MOVE_DELAY_MS = 300
 
+HINT_SEARCH_DEPTH = 3
+HINT_BUTTON_TEXT = "Подсказать ход"
+HINT_STATUS_TEXT = "Попробуйте сделать ход в подсвеченную клетку."
 DIFFICULTY_EASY = "easy"
 DIFFICULTY_MEDIUM = "medium"
 DIFFICULTY_HARD = "hard"
